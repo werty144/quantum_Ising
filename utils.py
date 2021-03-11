@@ -1,6 +1,6 @@
 import numpy as np
 from qiskit import *
-from itertools import product
+from itertools import product, combinations
 import pandas as pd
 
 def make_neighbour_indices(n):
@@ -26,24 +26,29 @@ def H(spins, interactions, magnetic_fields=None):
 	return (- spins.T @ interactions @ spins - magnetic_fields @ spins).item()
 
 
+def spins_energy(spins, interactions, magnetic_fields=None, beta=1):
+	return np.exp(-beta * H(spins, interactions, magnetic_fields))
+
+
 def Z(n, interactions, magnetic_fields=None, beta=1):
 	z = 0
 	for spins in product([-1, 1], repeat=n):
-		z += np.exp(-beta * H(np.array(spins), interactions, magnetic_fields))
+		spins = np.array(spins)
+		z += spins_energy(spins, interactions, magnetic_fields, beta)
 	return z
 
 
 def Pr(spins, interactions, magnetic_fields=None, beta=1):
-	return np.exp(-beta * H(spins, interactions, magnetic_fields)) / Z(len(spins), interactions, magnetic_fields, beta)
+	return spins_energy(spins, interactions, magnetic_fields, beta) / Z(len(spins), interactions, magnetic_fields, beta)
 
 
 def get_probs_distribution(n, interactions, magnetic_fields=None, beta=1):
 	configs, probs = [], []
 	for spins in product([-1, 1], repeat=n):
-		configs.append(list(spins))   
+		configs.append(string01_from_spins(spins))  
 		probs.append(Pr(np.array(spins), interactions, magnetic_fields, beta))
 
-	display(pd.DataFrame({'s': configs, 'Pr[s]': probs}))
+	return pd.DataFrame({'s': configs, 'Pr[s]': probs})
 
 
 def S_gate(J=1, beta=1):
@@ -96,3 +101,28 @@ def process_circled_result(result):
 	summa = sum(filtered_results.values())
 	normalized_filtered = {key[1:]: value/summa for (key, value) in filtered_results.items()}
 	return normalized_filtered
+
+
+def spins_from_string01(s):
+	return np.array([-1 if c == '0' else 1 for c in s])
+
+
+def string01_from_spins(spins):
+	return ''.join(['0' if spin == -1 else '1' for spin in spins])
+
+
+def distribution_pseudo_pvalue(probabilities, interactions, magnetic_fields=None, beta=1):
+	measurements = probabilities.keys()
+	real_energies = dict()
+	for mes in measurements:
+		real_energies[mes] = spins_energy(spins_from_string01(mes), interactions, magnetic_fields, beta)
+	ratio_sum = 0
+	combs = 0
+	for (mes1, mes2) in combinations(measurements, r=2):
+		combs += 1
+		obtained_probs_ratio = probabilities[mes1] / probabilities[mes2]
+		real_probs_ratio = real_energies[mes1] / real_energies[mes2]
+		ratio_sum += max(obtained_probs_ratio, real_probs_ratio) / min(obtained_probs_ratio, real_probs_ratio)
+
+	return 1 / (ratio_sum / combs)
+
