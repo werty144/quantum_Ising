@@ -97,7 +97,7 @@ def circled_circuit(n, interactions, magnetic_fields=None, beta=1):
 
 
 def process_circled_result(result):
-	filtered_results = {key: value for (key, value) in result.get_counts().items() if key[0] == '1'}
+	filtered_results = {key: value for (key, value) in result.items() if key[0] == '1'}
 	summa = sum(filtered_results.values())
 	normalized_filtered = {key[1:]: value/summa for (key, value) in filtered_results.items()}
 	return normalized_filtered
@@ -125,4 +125,10 @@ def distribution_pseudo_pvalue(probabilities, interactions, magnetic_fields=None
 		ratio_sum += max(obtained_probs_ratio, real_probs_ratio) / min(obtained_probs_ratio, real_probs_ratio)
 
 	return 1 / (ratio_sum / combs)
+
+
+def result_from_csv(csv_file_name):
+	df = pd.read_csv(csv_file_name, dtype={'Computational basis states': str, 'Measurement outcome': str})
+	result = {row[0]: row[1] for (ind, row) in df.iterrows()}
+	return result
 
