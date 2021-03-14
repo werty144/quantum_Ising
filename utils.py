@@ -142,3 +142,9 @@ def distribution_chi2_pvalue(observed_frequencies, interactions, magnetic_fields
     energy_sum = sum(energies)
     f_exp = list(map(lambda energy: energy/energy_sum * shots_n, energies))
     return chisquare(f_obs, f_exp)
+
+
+def to_csv(result, file_name):
+	result_df = pd.DataFrame(zip(result.keys(), result.values()), columns=['Measurement outcome', 'Frequency'])
+	with open(file_name, 'w+') as f:
+		result_df.to_csv(f, index=False)
