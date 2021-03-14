@@ -2,6 +2,8 @@ import numpy as np
 from qiskit import *
 from itertools import product, combinations
 import pandas as pd
+from scipy.stats import chisquare
+
 
 def make_neighbour_indices(n):
 	return np.dstack((np.arange(n)[:-1], np.arange(n)[1:])).reshape((-1, 2))
@@ -97,10 +99,7 @@ def circled_circuit(n, interactions, magnetic_fields=None, beta=1):
 
 
 def process_circled_result(result):
-	filtered_results = {key: value for (key, value) in result.items() if key[0] == '1'}
-	summa = sum(filtered_results.values())
-	normalized_filtered = {key[1:]: value/summa for (key, value) in filtered_results.items()}
-	return normalized_filtered
+	return  {key[1:]: value for (key, value) in result.items() if key[0] == '1'}
 
 
 def spins_from_string01(s):
@@ -132,3 +131,14 @@ def result_from_csv(csv_file_name):
 	result = {row[0]: row[1] for (ind, row) in df.iterrows()}
 	return result
 
+
+def distribution_chi2_pvalue(observed_frequencies, interactions, magnetic_fields=None, beta=1):
+    f_obs, energies = [], []
+    shots_n = sum(observed_frequencies.values())
+    for observation, frequency in observed_frequencies.items():
+        f_obs.append(frequency)
+        energies.append(spins_energy(spins_from_string01(observation), interactions, magnetic_fields, beta))
+
+    energy_sum = sum(energies)
+    f_exp = list(map(lambda energy: energy/energy_sum * shots_n, energies))
+    return chisquare(f_obs, f_exp)
