@@ -3,6 +3,9 @@ from qiskit import *
 from itertools import product, combinations
 import pandas as pd
 from scipy.stats import chisquare
+from collections import defaultdict
+from os import path, getcwd
+from tqdm import tqdm
 
 
 def make_neighbour_indices(n):
@@ -216,7 +219,27 @@ def distribution_chi2_pvalue(observed_frequencies, interactions, magnetic_fields
     return chisquare(f_obs, f_exp)
 
 
+def draw_energy_hist(observations, interactions, magnetic_fields=None, beta=1):
+	energies = []
+	for observation, frequency in tqdm(observations.items()):
+		energy = spins_energy(spins_from_string01(observation), interactions, magnetic_fields, beta)
+		energies += [energy] * frequency
+	df = pd.DataFrame(energies, columns=['energy'])
+	df.hist()
+
+
 def to_csv(result, file_name):
 	result_df = pd.DataFrame(zip(result.keys(), result.values()), columns=['Measurement outcome', 'Frequency'])
 	with open(file_name, 'w+') as f:
 		result_df.to_csv(f, index=False)
+
+
+def run_and_write_to_csv(circuit, backend_name, provider, result_file_name=None, shots_n=8192):
+	backend = provider.get_backend(backend_name)
+	job = qiskit.execute(circuit, backend, shots=shots_n)
+	qiskit.tools.job_monitor(job)
+	result = job.result().get_counts()
+
+	if result_file_name is None:
+		result_file_name = path.join(getcwd(), 'measured_data', backend_name + '_' + str(shots_n) + '_' + str(job.job_id()) + '.csv')
+	to_csv(result, result_file_name)
