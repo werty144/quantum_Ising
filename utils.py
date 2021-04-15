@@ -6,6 +6,7 @@ from scipy.stats import chisquare
 from collections import defaultdict
 from os import path, getcwd
 from tqdm import tqdm
+from math import log
 
 
 def make_neighbour_indices(n):
@@ -33,6 +34,10 @@ def H(spins, interactions, magnetic_fields=None):
 
 def spins_energy(spins, interactions, magnetic_fields=None, beta=1):
 	return np.exp(-beta * H(spins, interactions, magnetic_fields))
+
+
+def spins_beta_H(spins, interactions, magnetic_fields=None, beta=1):
+	return -beta * H(spins, interactions, magnetic_fields)
 
 
 def Z(n, interactions, magnetic_fields=None, beta=1):
@@ -172,7 +177,6 @@ def process_lattice_result(result, work_bits_n):
 	return  {key[work_bits_n:]: value for (key, value) in result.items() if key[:work_bits_n] == '1' * work_bits_n}
 
 
-
 def process_circled_result(result):
 	return  {key[1:]: value for (key, value) in result.items() if key[0] == '1'}
 
@@ -222,7 +226,7 @@ def distribution_chi2_pvalue(observed_frequencies, interactions, magnetic_fields
 def draw_energy_hist(observations, interactions, magnetic_fields=None, beta=1):
 	energies = []
 	for observation, frequency in tqdm(observations.items()):
-		energy = spins_energy(spins_from_string01(observation), interactions, magnetic_fields, beta)
+		energy = spins_beta_H(spins_from_string01(observation), interactions, magnetic_fields, beta)
 		energies += [energy] * frequency
 	df = pd.DataFrame(energies, columns=['energy'])
 	df.hist()
@@ -243,3 +247,29 @@ def run_and_write_to_csv(circuit, backend_name, provider, result_file_name=None,
 	if result_file_name is None:
 		result_file_name = path.join(getcwd(), 'measured_data', backend_name + '_' + str(shots_n) + '_' + str(job.job_id()) + '.csv')
 	to_csv(result, result_file_name)
+
+
+def estimate_beta(result, interactions):
+	H_frequency = defaultdict(lambda: 0)
+	for observation, frequency in result.items():
+		cur_H = H(spins_from_string01(observation), interactions)
+		H_frequency[cur_H] += frequency
+
+	Xs, Ys = [], []
+	pairs = list(H_frequency.items())
+	if len(pairs) == 1:
+		return None
+
+	for i in range(1, len(pairs)):
+		H1, freq1 = pairs[i - 1]
+		H2, freq2 = pairs[i]
+		Xs.append(-(H1 - H2))
+		Ys.append(log(freq1 / freq2))
+
+	numerator = 0
+	denominator = 0
+	for i in range(len(Xs)):
+		numerator += Xs[i] * Ys[i]
+		denominator += Xs[i] ** 2
+
+	return numerator / denominator
