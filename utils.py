@@ -134,6 +134,14 @@ def circled_circuit(n, interactions, beta=1):
 	return circ
 
 
+def add_h_cnot_to_all(circuit):
+	b = QuantumRegister(1, 'b')
+	circuit.add_register(b)
+	circuit.h(b[0])
+	for qubit in circuit.qubits[:-1]:
+		circuit.cnot(b[0], qubit)
+
+
 def lattice_draft(plaquettes_interactions, hv_edges_n, beta=1):
 	VERTICES_IN_PLAQUETTE = 4
 
@@ -179,6 +187,10 @@ def process_lattice_result(result, work_bits_n):
 
 def process_circled_result(result):
 	return  {key[1:]: value for (key, value) in result.items() if key[0] == '1'}
+
+
+def process_balanced_result(result):
+	return {key[1:]: value for (key, value) in result.items()}
 
 
 def spins_from_string01(s):
