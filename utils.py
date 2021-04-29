@@ -6,7 +6,7 @@ from scipy.stats import chisquare
 from collections import defaultdict
 from os import path, getcwd
 from tqdm import tqdm
-from math import log
+from math import log, sqrt
 
 
 def make_neighbour_indices(n):
@@ -285,3 +285,99 @@ def estimate_beta(result, interactions):
 		denominator += Xs[i] ** 2
 
 	return numerator / denominator
+
+
+def ouctomes_frequencies(result):
+	outcomes, frequencies = [], []
+	for outcome, frequency in result.items():
+		outcomes.append(outcome)
+		frequencies.append(frequency)
+
+	total = sum(frequencies)
+
+	return outcomes, [frequency/total for frequency in frequencies]
+
+
+def kullback_leibler_divergence(result, interactions, probability_denomenator=None, beta=1):
+	outcomes, frequencies = ouctomes_frequencies(result)
+
+	n = len(outcomes[0])
+	all_obtained = True
+	if not len(outcomes) == 2**n:
+		all_obtained = False
+
+	energy_map = {}
+	for outcome in outcomes:
+		energy_map[outcome] = spins_energy(spins_from_string01(outcome), interactions, beta=beta)
+
+	if probability_denomenator is None:
+		if n <= 15:
+			probability_denomenator = Z(n, interactions, beta=beta)
+		else:
+			probability_denomenator = sum(energy_map.values())
+
+	kl_sum = 0
+
+	for outcome, frequency in zip(outcomes, frequencies):
+		P = frequency
+		Q = energy_map[outcome] / probability_denomenator
+		kl_sum += P * log(P / Q)
+
+	return kl_sum, all_obtained
+
+
+def hellinger_distance(result, interactions, probability_denomenator=None, beta=1):
+	outcomes, frequencies = ouctomes_frequencies(result)
+
+	n = len(outcomes[0])
+	all_obtained = True
+	if not len(outcomes) == 2**n:
+		all_obtained = False
+
+	energy_map = {}
+	for outcome in outcomes:
+		energy_map[outcome] = spins_energy(spins_from_string01(outcome), interactions, beta=beta)
+
+	if probability_denomenator is None:
+		if n <= 15:
+			probability_denomenator = Z(n, interactions, beta=beta)
+		else:
+			probability_denomenator = sum(energy_map.values())
+
+	h_sum = 0
+	for outcome, frequency in zip(outcomes, frequencies):
+		P = frequency
+		Q = energy_map[outcome] / probability_denomenator
+		h_sum += (sqrt(P) - sqrt(Q))**2
+
+	return 1/sqrt(2) * sqrt(h_sum), all_obtained
+
+
+def total_variation_distance(result, interactions, probability_denomenator=None, beta=1):
+	outcomes, frequencies = ouctomes_frequencies(result)
+
+	n = len(outcomes[0])
+	all_obtained = True
+	if not len(outcomes) == 2**n:
+		all_obtained = False
+
+	energy_map = {}
+	for outcome in outcomes:
+		energy_map[outcome] = spins_energy(spins_from_string01(outcome), interactions, beta=beta)
+
+	if probability_denomenator is None:
+		if n <= 15:
+			probability_denomenator = Z(n, interactions, beta=beta)
+		else:
+			probability_denomenator = sum(energy_map.values())
+
+	positive_P_Q_diffs, negative_P_Q_diffs = [], []
+	for outcome, frequency in zip(outcomes, frequencies):
+		P = frequency
+		Q = energy_map[outcome] / probability_denomenator
+		if P - Q > 0:
+			positive_P_Q_diffs.append(P - Q)
+		else:
+			negative_P_Q_diffs.append(P - Q)
+
+	return max(sum(positive_P_Q_diffs), sum(negative_P_Q_diffs)), all_obtained
