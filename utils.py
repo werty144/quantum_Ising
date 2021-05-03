@@ -6,7 +6,7 @@ from scipy.stats import chisquare
 from collections import defaultdict
 from os import path, getcwd
 from tqdm import tqdm
-from math import log, sqrt
+from math import log, sqrt, comb, exp
 
 
 def make_neighbour_indices(n):
@@ -21,15 +21,7 @@ def interaction_matrix_from_dict(n, pair_interaction):
 
 
 def H(spins, interactions, magnetic_fields=None):
-	n = len(spins)
-
-	if isinstance(interactions, dict):
-		interactions = interaction_matrix_from_dict(n, interactions)
-	
-	if magnetic_fields is None:
-		magnetic_fields = np.zeros(n)
-		
-	return (- spins.T @ interactions @ spins - magnetic_fields @ spins).item()
+	return -sum([interaction * spins[i] * spins[j] for (i, j), interaction in interactions.items()])
 
 
 def spins_energy(spins, interactions, magnetic_fields=None, beta=1):
@@ -381,3 +373,75 @@ def total_variation_distance(result, interactions, probability_denomenator=None,
 			negative_P_Q_diffs.append(P - Q)
 
 	return max(sum(positive_P_Q_diffs), sum(negative_P_Q_diffs)), all_obtained
+
+
+
+def kullback_leibler_divergence_energy(result, beta):
+	# Only for linear Ising chain with all neighbours interactions equal to 1
+
+	def get_alternations_n(observation: str):
+		return sum([1 for i in range(1, len(observation)) if observation[i - 1] != observation[i]])
+
+	def trivial_H(n, alternations_n):
+		return -((n - 1) - 2 * alternations_n)
+
+	def get_theoretical_enumerator(n, alternations_n, beta):
+		cur_H = trivial_H(n, alternations_n)
+		return 2 * comb(n - 1, alternations_n) * np.exp(-beta * cur_H)
+
+
+	outcomes, frequencies = ouctomes_frequencies(result)
+	n = len(outcomes[0])
+
+	empiric_energy_prob = defaultdict(lambda: 0)
+	for outcome, frequency in zip(outcomes, frequencies):
+		alternations_n = get_alternations_n(outcome)
+		empiric_energy_prob[alternations_n] += frequency
+
+	theoretical_denomenator = 0
+	for alternations_n in range(n):
+		theoretical_denomenator += get_theoretical_enumerator(n, alternations_n, beta)
+
+	kl_sum = 0
+	for alternations_n, empiric_frequency in empiric_energy_prob.items():
+		P = empiric_frequency
+		Q = get_theoretical_enumerator(n, alternations_n, beta) / theoretical_denomenator
+		kl_sum += P * log(P / Q)
+
+	return kl_sum
+
+
+def hellinger_distance_energy(result, beta):
+	# Only for linear Ising chain with all neighbours interactions equal to 1
+
+	def get_alternations_n(observation: str):
+		return sum([1 for i in range(1, len(observation)) if observation[i - 1] != observation[i]])
+
+	def trivial_H(n, alternations_n):
+		return -((n - 1) - 2 * alternations_n)
+
+	def get_theoretical_enumerator(n, alternations_n, beta):
+		cur_H = trivial_H(n, alternations_n)
+		return 2 * comb(n - 1, alternations_n) * np.exp(-beta * cur_H)
+
+
+	outcomes, frequencies = ouctomes_frequencies(result)
+	n = len(outcomes[0])
+
+	empiric_energy_prob = defaultdict(lambda: 0)
+	for outcome, frequency in zip(outcomes, frequencies):
+		alternations_n = get_alternations_n(outcome)
+		empiric_energy_prob[alternations_n] += frequency
+
+	theoretical_denomenator = 0
+	for alternations_n in range(n):
+		theoretical_denomenator += get_theoretical_enumerator(n, alternations_n, beta)
+
+	h_sum = 0
+	for alternations_n, empiric_frequency in empiric_energy_prob.items():
+		P = empiric_frequency
+		Q = get_theoretical_enumerator(n, alternations_n, beta) / theoretical_denomenator
+		h_sum += (sqrt(P) - sqrt(Q))**2
+
+	return 1/sqrt(2) * sqrt(h_sum)
+
