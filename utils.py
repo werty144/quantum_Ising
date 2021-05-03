@@ -375,6 +375,12 @@ def total_variation_distance(result, interactions, probability_denomenator=None,
 	return max(sum(positive_P_Q_diffs), sum(negative_P_Q_diffs)), all_obtained
 
 
+# def big_float_to_int(f):
+# 	if f < 10**5:
+# 		return f
+# 	int_str = str(f).split('.')[0]
+# 	return int(int_str)
+
 
 def kullback_leibler_divergence_energy(result, beta):
 	# Only for linear Ising chain with all neighbours interactions equal to 1
