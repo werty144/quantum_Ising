@@ -1,0 +1,42 @@
+
+\documentclass[12pt]{article} % 12 -- размер шрифта
+\usepackage{cmap} % Чтобы можно было копировать русский текст из pdf
+\usepackage[T2A]{fontenc}
+\usepackage[russian]{babel} % В частности эта строка отвечает за правильные переносы слов в конце строки
+\usepackage[utf8]{inputenc} % Проверьте, что кодировка файла -- тоже utf8
+\usepackage{amsmath, amssymb} % Чтобы юзать математические символы
+\usepackage{ dsfont }
+\usepackage{ wasysym }
+\usepackage[makeroom]{cancel}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage[shortlabels]{enumitem}
+
+\begin{document}
+	\begin{center}
+		{\Large Доказательство}\\
+		того, что минимумы КЛ-дивергенций между теоретическим распределением Изинга и некоторым эмпирическим и этими же распределениями, сгруппированными по энергиям, достигаются на одном и том же значении параметра $\beta$. 
+	\end{center}
+Обозначим количество спинов за $n$. Конкретную ориентацию спинов\\ (к примеру, $\{+1, -1, -1, +1 \ldots -1\}$) будем называть конфигурацией. Обозначим за $P = \{p_1, p_2 \ldots p_{2^n}\}$ частоту эмпирических наблюдений всех конфигураций, а за $q_i(\beta)$ - теоретическую вероятность $i$-ой конфигурации.\\
+Тогда
+\begin{align*}
+	KLD(P, Q(\beta)) = \sum\limits_{i = 1}^{2^n}p_i\cdot\log(\frac{p_i}{q_i(\beta)})\\
+	\frac{d}{d\beta}KLD(P, Q(\beta)) = - \sum\limits_{i = 1}^{2^n}p_i \cdot \frac{q_i'(\beta)}{q_i(\beta)}
+\end{align*}
+Пусть $C$ - множество классов эквивалентности конфигураций $[1, 2^n]$ по отношению равенства энергий. Обозначим для $c \in C$ $p_c = \sum\limits_{i \in c}p_i$ и $q_c(\beta) = q_i(\beta) \text{ для некоторого } i \in c$. Заметим, что $\forall i, j \in c\  q_i = q_j$, значит, $q_c$ не зависит от выбора $i$. За $c(e)$ обозначим класс, соответствующий энергии $e$. В этих обозначениях теоретическая вероятность получить наблюдение с энергией $e$ равна  $\sum\limits_{i \in c(e)}q_i = |c(e)|\cdot q_{c(e)}$. Таким образом, дивергенция Кульбака-Лейблера для распределения по энергиям
+\begin{align*}
+	KLD_E(P, Q(\beta)) = \sum\limits_{c \in C}p_c \cdot \log(\frac{p_c}{q_c(\beta)\cdot |c|})\\
+	\frac{d}{d\beta}KLD_E(P, Q(\beta)) = -\sum\limits_{c \in C}p_c \cdot \frac{(q_c(\beta)\cdot |c|)'}{q_c(\beta)\cdot |c|} =\\= -\sum\limits_{c \in C}\left(\sum\limits_{i \in c} p_i\right)\cdot \frac{q_c'(\beta)}{q_c(\beta)} = -\sum\limits_{c \in C}\left(\sum\limits_{i \in c} p_i\cdot \frac{q_i'(\beta)}{q_i(\beta)} \right)
+\end{align*}
+Видно, что
+\begin{align*}
+\frac{d}{d\beta}KLD(P, Q(\beta)) = \frac{d}{d\beta}KLD_E(P, Q(\beta))
+\end{align*}
+а значит
+\begin{align*}
+\arg\min\limits_\beta KLD(P, Q(\beta)) = \arg\min\limits_\beta KLD_E(P, Q(\beta))
+\end{align*}
+что и требовалось доказать. \hfill $\blacksquare$\\
+
+Хочется отметить, что в случае нулевых значений некоторых $p_i$ все рассуждения сохраняются, если суммировать без учета этих нулевых значений.
+\end{document}
