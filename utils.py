@@ -392,7 +392,7 @@ def kullback_leibler_divergence_energy(result, beta):
 		return -((n - 1) - 2 * alternations_n)
 
 	def get_theoretical_enumerator(n, alternations_n, beta):
-		cur_H = trivial_H(n, alternations_n)
+		cur_H = trivial_H(n, alternations_n) + n
 		return 2 * comb(n - 1, alternations_n) * np.exp(-beta * cur_H)
 
 
@@ -427,7 +427,7 @@ def hellinger_distance_energy(result, beta):
 		return -((n - 1) - 2 * alternations_n)
 
 	def get_theoretical_enumerator(n, alternations_n, beta):
-		cur_H = trivial_H(n, alternations_n)
+		cur_H = trivial_H(n, alternations_n) + n
 		return 2 * comb(n - 1, alternations_n) * np.exp(-beta * cur_H)
 
 
